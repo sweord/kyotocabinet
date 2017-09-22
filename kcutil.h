@@ -18,7 +18,6 @@
 
 #include <kccommon.h>
 
-
 namespace kyotocabinet {                 // common namespace
 
 
@@ -69,8 +68,6 @@ const uint32_t UINT32MAX = (std::numeric_limits<uint32_t>::max)();
 /** The maximum value of uint64_t. */
 const uint64_t UINT64MAX = (std::numeric_limits<uint64_t>::max)();
 
-/** The size of uint64_t. */
-const uint64_t UINT64LEN = sizeof(uint64_t);
 
 /** The maximum value of size_t. */
 const size_t SIZEMAX = (std::numeric_limits<size_t>::max)();
@@ -352,19 +349,8 @@ bool chkinf(double num);
  * @param format the printf-like format string.  The conversion character `%' can be used with
  * such flag characters as `s', `d', `o', `u', `x', `X', `c', `e', `E', `f', `g', `G', and `%'.
  * @param ap used according to the format string.
- * NOTE: capped at 2K for performace enhancement
  */
 void vstrprintf(std::string* dest, const char* format, va_list ap);
-
-
-/**
- * Append a formatted string at the end of a string.
- * @param dest the destination string.
- * @param format the printf-like format string.  The conversion character `%' can be used with
- * such flag characters as `s', `d', `o', `u', `x', `X', `c', `e', `E', `f', `g', `G', and `%'.
- * @param ap used according to the format string.
- */
-void vstrprintf_unlimited(std::string* dest, const char* format, va_list ap);
 
 
 /**
@@ -1577,26 +1563,10 @@ inline bool chkinf(double num) {
 }
 
 
-#define MIN(a, b) (a > b ? b : a)
-#define MAX_LINE 2048
-
-
 /**
  * Append a formatted string at the end of a string.
- * NOTE: capped at 2K
  */
 inline void vstrprintf(std::string* dest, const char* format, va_list ap) {
-  _assert_(dest && format);
-  char tmp[MAX_LINE] = {0};
-  int len = vsnprintf(tmp, MAX_LINE, format, ap);
-  dest->append(tmp, MIN(len, MAX_LINE));
-}
-
-
-/**
- * Append a formatted string at the end of a string.
- */
-inline void vstrprintf_unlimited(std::string* dest, const char* format, va_list ap) {
   _assert_(dest && format);
   while (*format != '\0') {
     if (*format == '%') {
@@ -1626,11 +1596,11 @@ inline void vstrprintf_unlimited(std::string* dest, const char* format, va_list 
           char tbuf[NUMBUFSIZ*4];
           size_t tsiz;
           if (lnum >= 2) {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, long long));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, long long));
           } else if (lnum >= 1) {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, long));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, long));
           } else {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, int));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, int));
           }
           dest->append(tbuf, tsiz);
           break;
@@ -1639,11 +1609,11 @@ inline void vstrprintf_unlimited(std::string* dest, const char* format, va_list 
           char tbuf[NUMBUFSIZ*4];
           size_t tsiz;
           if (lnum >= 2) {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, unsigned long long));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, unsigned long long));
           } else if (lnum >= 1) {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, unsigned long));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, unsigned long));
           } else {
-            tsiz = sprintf(tbuf, cbuf, va_arg(ap, unsigned int));
+            tsiz = std::sprintf(tbuf, cbuf, va_arg(ap, unsigned int));
           }
           dest->append(tbuf, tsiz);
           break;
@@ -1652,9 +1622,9 @@ inline void vstrprintf_unlimited(std::string* dest, const char* format, va_list 
           char tbuf[NUMBUFSIZ*4];
           size_t tsiz;
           if (lnum >= 1) {
-            tsiz = snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, long double));
+            tsiz = std::snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, long double));
           } else {
-            tsiz = snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, double));
+            tsiz = std::snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, double));
           }
           if (tsiz > sizeof(tbuf)) {
             tbuf[sizeof(tbuf)-1] = '*';
@@ -1665,7 +1635,7 @@ inline void vstrprintf_unlimited(std::string* dest, const char* format, va_list 
         }
         case 'p': {
           char tbuf[NUMBUFSIZ*4];
-          size_t tsiz = sprintf(tbuf, "%p", va_arg(ap, void*));
+          size_t tsiz = std::sprintf(tbuf, "%p", va_arg(ap, void*));
           dest->append(tbuf, tsiz);
           break;
         }
@@ -2250,6 +2220,110 @@ inline char* quotedecode(const char* str, size_t* sp) {
   *wp = '\0';
   *sp = wp - zbuf;
   return zbuf;
+}
+
+
+/**
+ * Encode a serial object by Base64 encoding.
+ */
+inline char* baseencode(const void* buf, size_t size) {
+  _assert_(buf && size <= MEMMAXSIZ);
+  const char* tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const unsigned char* rp = (const unsigned char*)buf;
+  char* zbuf = new char[size*4/3+5];
+  char* wp = zbuf;
+  for (size_t i = 0; i < size; i += 3) {
+    switch (size - i) {
+      case 1: {
+        *(wp++) = tbl[rp[0] >> 2];
+        *(wp++) = tbl[(rp[0] & 3) << 4];
+        *(wp++) = '=';
+        *(wp++) = '=';
+        break;
+      }
+      case 2: {
+        *(wp++) = tbl[rp[0] >> 2];
+        *(wp++) = tbl[((rp[0] & 3) << 4) + (rp[1] >> 4)];
+        *(wp++) = tbl[(rp[1] & 0xf) << 2];
+        *(wp++) = '=';
+        break;
+      }
+      default: {
+        *(wp++) = tbl[rp[0] >> 2];
+        *(wp++) = tbl[((rp[0] & 3) << 4) + (rp[1] >> 4)];
+        *(wp++) = tbl[((rp[1] & 0xf) << 2) + (rp[2] >> 6)];
+        *(wp++) = tbl[rp[2] & 0x3f];
+        break;
+      }
+    }
+    rp += 3;
+  }
+  *wp = '\0';
+  return zbuf;
+}
+
+
+/**
+ * Decode a string encoded by Base64 encoding.
+ */
+inline char* basedecode(const char* str, size_t* sp) {
+  _assert_(str && sp);
+  size_t bpos = 0;
+  size_t eqcnt = 0;
+  size_t len = std::strlen(str);
+  unsigned char* zbuf = new unsigned char[len+4];
+  unsigned char* wp = zbuf;
+  size_t zsiz = 0;
+  while (bpos < len && eqcnt == 0) {
+    size_t bits = 0;
+    size_t i;
+    for (i = 0; bpos < len && i < 4; bpos++) {
+      if (str[bpos] >= 'A' && str[bpos] <= 'Z') {
+        bits = (bits << 6) | (str[bpos] - 'A');
+        i++;
+      } else if (str[bpos] >= 'a' && str[bpos] <= 'z') {
+        bits = (bits << 6) | (str[bpos] - 'a' + 26);
+        i++;
+      } else if (str[bpos] >= '0' && str[bpos] <= '9') {
+        bits = (bits << 6) | (str[bpos] - '0' + 52);
+        i++;
+      } else if (str[bpos] == '+') {
+        bits = (bits << 6) | 62;
+        i++;
+      } else if (str[bpos] == '/') {
+        bits = (bits << 6) | 63;
+        i++;
+      } else if (str[bpos] == '=') {
+        bits <<= 6;
+        i++;
+        eqcnt++;
+      }
+    }
+    if (i == 0 && bpos >= len) continue;
+    switch (eqcnt) {
+      case 0: {
+        *wp++ = (bits >> 16) & 0xff;
+        *wp++ = (bits >> 8) & 0xff;
+        *wp++ = bits & 0xff;
+        zsiz += 3;
+        break;
+      }
+      case 1: {
+        *wp++ = (bits >> 16) & 0xff;
+        *wp++ = (bits >> 8) & 0xff;
+        zsiz += 2;
+        break;
+      }
+      case 2: {
+        *wp++ = (bits >> 16) & 0xff;
+        zsiz += 1;
+        break;
+      }
+    }
+  }
+  zbuf[zsiz] = '\0';
+  *sp = zsiz;
+  return (char*)zbuf;
 }
 
 

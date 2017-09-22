@@ -8,7 +8,7 @@
 
 
 # VC++ directory
-VCPATH = C:\Program Files\Microsoft Visual Studio 10.0\VC
+VCPATH = D:\Program Files\Microsoft Visual Studio 10.0\VC
 SDKPATH = C:\Program Files\Microsoft SDKs\Windows\v7.0A
 
 
@@ -39,7 +39,9 @@ LIBFLAGS = /nologo \
   /libpath:"."
 LINKFLAGS = /nologo \
   /libpath:"$(VCPATH)\lib" /libpath:"$(VCPATH)\PlatformSDK\Lib" /libpath:"$(SDKPATH)\Lib" \
-  /libpath:"."
+  /libpath:"." \
+  /libpath:"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\lib\amd64" \
+  /libpath:"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib\x64"
 
 
 
