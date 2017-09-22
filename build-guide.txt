@@ -1,5 +1,6 @@
 win64:
 1. open vs2010 x64 terminal
-2. nmake -f VCmakefile
+2. cd current directory
+3. nmake -f VCmakefile
 
 
