@@ -15,11 +15,11 @@ MYBINS = kcprotoex kccacheex kcgrassex kchashex kctreeex kcdirex kcforestex \
   kcpolyex kcvisex kcmrex kclangcex
 
 # Building binaries
-CC = gcc
-CXX = g++
-CFLAGS = -I. -I.. -Wall -ansi -pedantic -fsigned-char -O2
-CXXFLAGS = -I. -I.. -Wall -fsigned-char -O2
-LDFLAGS =
+CC = clang
+CXX = clang++
+CFLAGS = -I. -I.. -Wall -ansi -pedantic -fsigned-char -O2 -target x86_64-pc-linux-gnu -m64
+CXXFLAGS = -I. -I.. -Wall -fsigned-char -O2 -target x86_64-pc-linux-gnu -m64
+LDFLAGS = -m64
 LIBS = -L. -L.. -lkyotocabinet -lstdc++ -lz -lrt -lpthread -lm -lc
 LDENV = LD_RUN_PATH=/lib:/usr/lib:$(HOME)/lib:/usr/local/lib:.:..
 RUNENV = LD_LIBRARY_PATH=/lib:/usr/lib:$(HOME)/lib:/usr/local/lib:.:..
