@@ -3,4 +3,5 @@ win64:
 2. cd current directory
 3. nmake -f VCmakefile
 
-
+linux64:
+1. make
